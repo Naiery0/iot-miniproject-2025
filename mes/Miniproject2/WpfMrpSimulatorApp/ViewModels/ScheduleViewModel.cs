@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MahApps.Metro.Controls.Dialogs;
+using Microsoft.EntityFrameworkCore;
 using MySql.Data.MySqlClient;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -15,17 +16,15 @@ namespace WpfMrpSimulatorApp.ViewModels
     {
         // readonly 생성자에서 할당하고나면 그 이후에 값변경 불가
         private readonly IDialogCoordinator dialogCoordinator;
+        private readonly IoTDbContext dbContext;
 
         #region View와 연동할 멤버변수들
 
-        private string _basicCode;
-        private string _codeName;
-        private string? _codeDesc;
         private DateTime? _regDt;
         private DateTime? _modDt;
 
-        private ObservableCollection<Setting> _settings;
-        private Setting _selectedSetting;
+        private ObservableCollection<ScheduleNew> _schedules;
+        private ScheduleNew _selectedSchedule;
         private bool _isUpdate;
 
         private bool _canSave;
@@ -54,51 +53,27 @@ namespace WpfMrpSimulatorApp.ViewModels
         }
 
         // View와 연동될 데이터/컬렉션
-        public ObservableCollection<Setting> Settings
+        public ObservableCollection<ScheduleNew> Schedules
         {
-            get => _settings;
-            set => SetProperty(ref _settings, value);
+            get => _schedules;
+            set => SetProperty(ref _schedules, value);
         }
 
-        public Setting SelectedSetting
+        public ScheduleNew SelectedSchedule
         {
-            get => _selectedSetting;
+            get => _selectedSchedule;
             set { 
-                SetProperty(ref _selectedSetting, value);
+                SetProperty(ref _selectedSchedule, value);
                 // 최초에 BasicCode에 값이 있는 상태만 수정상태
-                if (_selectedSetting != null)  // 삭제 후에는 _selectedSetting자체가 null이 됨
+                if (_selectedSchedule != null)  // 삭제 후에는 _selectedSetting자체가 null이 됨
                 {
-                    if (!string.IsNullOrEmpty(_selectedSetting.BasicCode))  // NullReferenceException 발생 가능
-                    {
-                        CanSave = true;
-                        CanRemove = true;
-                    }
+                    //if (_selectedSchedule.SchIdx != null)  // NullReferenceException 발생 가능
+                    //{
+                    //    CanSave = true;
+                    //    CanRemove = true;
+                    //}
                 }
             }
-        }
-
-        /// <summary>
-        /// 기본코드
-        /// </summary>
-        public string BasicCode {
-            get => _basicCode;
-            set => SetProperty(ref _basicCode, value);
-        }
-
-        /// <summary>
-        /// 코드명
-        /// </summary>
-        public string CodeName {
-            get => _codeName; 
-            set => SetProperty(ref _codeName, value);
-        }
-
-        /// <summary>
-        /// 코드설명
-        /// </summary>
-        public string? CodeDesc {
-            get => _codeDesc;
-            set => SetProperty(ref _codeDesc, value);
         }
 
         public DateTime? RegDt {
@@ -116,6 +91,7 @@ namespace WpfMrpSimulatorApp.ViewModels
         public ScheduleViewModel(IDialogCoordinator coordinator)
         {
             this.dialogCoordinator = coordinator;  // 파라미터값으로 초기화
+            this.dbContext = new IoTDbContext();
 
             LoadGridFromDb(); // DB에서 데이터로드해서 그리드에 출력
             IsUpdate = true;
@@ -128,42 +104,36 @@ namespace WpfMrpSimulatorApp.ViewModels
         {
             try
             {
-                string query = @"SELECT basicCode
-                                      , codeName
-                                      , codeDesc
-                                      , regDt
-                                      , modDt
-                                   FROM settings";
-                ObservableCollection<Setting> settings = new ObservableCollection<Setting>();
-
-                // DB연동 방식 1
-                using (MySqlConnection conn = new MySqlConnection(Common.CONNSTR))
+                using (var db = new IoTDbContext())
                 {
-                    conn.Open();
-                    MySqlCommand cmd = new MySqlCommand(query, conn);
-                    MySqlDataReader reader = cmd.ExecuteReader();
+                    var results = db.Schedules
+                                    .Join(db.Settings,
+                                        sch => sch.PlantCode,
+                                        setting => setting.BasicCode,
+                                        (sch, setting1) => new { sch, setting1 })
+                                    .Join(db.Settings,
+                                          temp => temp.sch.SchFacilityId,
+                                          setting2 => setting2.BasicCode,
+                                          (temp, setting2) => new ScheduleNew
+                                          {
+                                            SchIdx = temp.sch.SchIdx,
+                                            PlantCode = temp.sch.PlantCode,
+                                            PlantName = temp.setting1.CodeName,  // 첫번째 조인에서 만든 값
+                                            SchDate = temp.sch.SchDate,
+                                            LoadTime = temp.sch.LoadTime,
+                                            SchStartTime = temp.sch.SchStartTime,
+                                            SchEndTime = temp.sch.SchEndTime,
+                                            SchFacilityId = temp.sch.SchFacilityId,
+                                            SchFacilityName = setting2.CodeName,  // 두번째 조인에서 만든 값
+                                            SchAmount = temp.sch.SchAmount,
+                                            RegDt = temp.sch.RegDt,
+                                            ModDt = temp.sch.ModDt,
+                                          }
+                                    ).ToList();
 
-                    while (reader.Read())
-                    {
-                        var basicCode = reader.GetString("basicCode");
-                        var codeName = reader.GetString("codeName");
-                        var codeDesc = reader.GetString("codeDesc");
-                        var regDt = reader.GetDateTime("regDt");
-                        // modDt는 최초에 입력후 항상 null. NULL타입 체크 필수
-                        var modDt = reader.IsDBNull(reader.GetOrdinal("modDt")) ? (DateTime?)null : reader.GetDateTime("modDt");
-
-                        settings.Add(new Setting
-                        {
-                            BasicCode = basicCode,
-                            CodeName = codeName,
-                            CodeDesc = codeDesc,
-                            RegDt = regDt,
-                            ModDt = modDt,
-                        });
-                    }
-                }
-
-                Settings = settings;
+                    ObservableCollection<ScheduleNew> schedules = new ObservableCollection<ScheduleNew>(results);
+                    Schedules = schedules;
+                }                
             }
             catch (Exception ex)
             {
@@ -173,7 +143,7 @@ namespace WpfMrpSimulatorApp.ViewModels
 
         private void InitVariable()
         {
-            SelectedSetting = new Setting();
+            SelectedSchedule = new ScheduleNew();
             // IsUpdate가 False면 신규, True면 수정
             IsUpdate = false;
         }
@@ -212,9 +182,6 @@ namespace WpfMrpSimulatorApp.ViewModels
                     }
 
                     MySqlCommand cmd = new MySqlCommand(query, conn);
-                    cmd.Parameters.AddWithValue("@basicCode", SelectedSetting.BasicCode);
-                    cmd.Parameters.AddWithValue("@codeName", SelectedSetting.CodeName);
-                    cmd.Parameters.AddWithValue("@codeDesc", SelectedSetting.CodeDesc);
 
                     var resultCnt = cmd.ExecuteNonQuery();
                     if (resultCnt > 0)
@@ -251,7 +218,6 @@ namespace WpfMrpSimulatorApp.ViewModels
                     conn.Open();
                     MySqlCommand cmd = new MySqlCommand(query, conn);
 
-                    cmd.Parameters.AddWithValue("@basicCode", SelectedSetting.BasicCode);
 
                     int resultCnt = cmd.ExecuteNonQuery(); // 삭제된 쿼리행수 리턴 1, 안지워졌으면 0
 
