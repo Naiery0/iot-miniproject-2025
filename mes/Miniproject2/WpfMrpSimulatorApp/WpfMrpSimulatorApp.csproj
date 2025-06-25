@@ -10,6 +10,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Views\belt.png" />
+    <None Remove="Views\gear.png" />
+    <None Remove="Views\sensor.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="stock.ico" />
   </ItemGroup>
 
@@ -29,7 +35,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Views\belt.png" />
+    <Resource Include="Views\gear.png" />
+    <Resource Include="Views\sensor.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Update="Views\ScheduleView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Views\MonitoringView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>

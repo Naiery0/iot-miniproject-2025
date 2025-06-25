@@ -33,7 +33,7 @@ namespace WpfMrpSimulatorApp.ViewModels
 
         #endregion
 
-        #region View와 연동할 속성
+        #region View와 연동할 속성        
 
         public bool CanSave
         {
