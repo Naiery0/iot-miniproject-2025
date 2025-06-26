@@ -39,8 +39,8 @@
             <StackPanel Grid.Row="0" Orientation="Horizontal">
                 <mah:NumericUpDown Margin="0,0,5,0"
                                    mah:TextBoxHelper.AutoWatermark="True" 
-                                   mah:TextBoxHelper.Watermark="공정계획순번"
-                                   Minimum="1" />
+                                   mah:TextBoxHelper.Watermark="순번"
+                                   Minimum="1" Value="{Binding SchIdx}" />
                 <Button Content="Search" Command="{Binding SearchProcessCommand}" Margin="0,0,5,0" />
                 <Button Content="Start" Command="{Binding StartProcessCommand}">
                     <Button.ContentTemplate>
@@ -52,6 +52,9 @@
                         </DataTemplate>
                     </Button.ContentTemplate>
                 </Button>
+
+                <Label Content="{Binding LogText}" />
+
 
             </StackPanel>
 
@@ -92,13 +95,17 @@
                 <Label Grid.Row="5" Grid.Column="0" Content="성공/실패수" />
                 <Label Grid.Row="6" Grid.Column="0" Content="공정성공률" />
 
-                <Label Grid.Row="0" Grid.Column="1" Content="창원공장" />
-                <Label Grid.Row="1" Grid.Column="1" Content="2025-06-26" />
-                <Label Grid.Row="2" Grid.Column="1" Content="10" />
-                <Label Grid.Row="3" Grid.Column="1" Content="창원설비1" />
-                <Label Grid.Row="4" Grid.Column="1" Content="100" />
-                <Label Grid.Row="5" Grid.Column="1" Content="20/3" />
-                <Label Grid.Row="6" Grid.Column="1" Content="86.9%" />
+                <Label Grid.Row="0" Grid.Column="1" Content="{Binding PlantName}" FontWeight="Bold" />
+                <Label Grid.Row="1" Grid.Column="1" Content="{Binding PrcDate}" />
+                <Label Grid.Row="2" Grid.Column="1" Content="{Binding PrcLoadTime}" />
+                <Label Grid.Row="3" Grid.Column="1" Content="{Binding PrcFacilityName}" FontWeight="Bold" />
+                <Label Grid.Row="4" Grid.Column="1" Content="{Binding SchAmount}" FontWeight="Bold" Foreground="Blue" />
+                <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal">
+                    <Label Content="{Binding SuccessAmount}" Foreground="Green" />
+                    <Label Content="/" />
+                    <Label Content="{Binding FailAmount}" Foreground="Red" />
+                </StackPanel>                
+                <Label Grid.Row="6" Grid.Column="1" Content="{Binding SuccessRate}" Foreground="Blue" />
             </Grid>
         </GroupBox>
     </Grid>
