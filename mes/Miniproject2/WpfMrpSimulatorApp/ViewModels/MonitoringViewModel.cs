@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MahApps.Metro.Controls;
 using MahApps.Metro.Controls.Dialogs;
 using MQTTnet;
 using MySql.Data.MySqlClient;
@@ -29,6 +30,11 @@ namespace WpfMrpSimulatorApp.ViewModels
         private string clientId;      // 클라이언트 자신의 아이디
 
         #endregion
+
+        // 멤버변수. 
+        private string _plantCode;          // IoT시뮬레이터로 전달
+        private string _prcFacilityId;      // IoT시뮬레이터로 전달
+        private bool _prcResult;    // 공정처리 결과 true(1), false(0)
 
         // 색상표시할 변수
         private Brush _productBrush;
@@ -167,11 +173,20 @@ namespace WpfMrpSimulatorApp.ViewModels
                 if (data.Result.ToUpper().Equals("OK"))  // data.Result.ToUpper() == "OK"
                 {
                     SuccessAmount += 1;
+                    ProductBrush = Brushes.Green;
+                    _prcResult = true;
                 }
                 else if (data.Result.ToUpper().Equals("FAIL"))
                 {
                     FailAmount += 1;
+                    ProductBrush = Brushes.Crimson;
+                    _prcResult = false;
                 }
+
+                SuccessRate = String.Format("{0:0.0}", (SuccessAmount * 100.0 / (SuccessAmount + FailAmount))) + " %";
+
+                // Process 테이블에 결과를 저장
+                SetDataToProcess();
             }
             catch (Exception ex)
             {
@@ -180,6 +195,30 @@ namespace WpfMrpSimulatorApp.ViewModels
             
 
             return Task.CompletedTask;
+        }
+
+        private void SetDataToProcess()
+        {
+            // DB연동
+            string query = @"INSERT INTO processes
+                                (schIdx, prcCd, prcDate, prcLoadTime, prcFacilityId, prcResult, regDt) 
+                             VALUES
+                                (@schIdx, @prcCd, @prcDate, @prcLoadTime, @prcFacilityId, @prcResult, now())";
+
+            using (MySqlConnection conn = new MySqlConnection(Common.CONNSTR)) { 
+                conn.Open();
+
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@schIdx", SchIdx);
+                var prcCd = DateTime.Now.ToString("yyyyMMdd") + "-" + Guid.NewGuid();
+                cmd.Parameters.AddWithValue("@prcCd", prcCd);
+                cmd.Parameters.AddWithValue("@prcDate", PrcDate);
+                cmd.Parameters.AddWithValue("@prcLoadTime", PrcLoadTime);
+                cmd.Parameters.AddWithValue("@prcFacilityId", _prcFacilityId);
+                cmd.Parameters.AddWithValue("@prcResult", _prcResult);
+
+                cmd.ExecuteNonQuery();
+            }
         }
 
         public void CheckAni()
@@ -239,6 +278,10 @@ namespace WpfMrpSimulatorApp.ViewModels
                     SchAmount = Convert.ToInt32(row["schAmount"]);
                     SuccessAmount = FailAmount = 0;
                     SuccessRate = "0.0 %";
+                    // 위에까지는 뷰로 보낼 속성
+                    // 뷰모델 내부에서 쓸 변수
+                    _plantCode = row["plantCode"].ToString();
+                    _prcFacilityId = row["schFacilityId"].ToString();
                 } else
                 {
                     await this.dialogCoordinator.ShowMessageAsync(this, "공정조회", "해당 공정이 없습니다.");
@@ -249,6 +292,9 @@ namespace WpfMrpSimulatorApp.ViewModels
                     SchAmount= 0;
                     SuccessAmount = FailAmount = 0;
                     SuccessRate = "0.0 %";
+                    // 뷰모델 내부에서 쓸 변수
+                    _plantCode = string.Empty;
+                    _prcFacilityId = string.Empty;
 
                     return;
                 }              
@@ -262,20 +308,51 @@ namespace WpfMrpSimulatorApp.ViewModels
         [RelayCommand]
         public async Task StartProcess()
         {
-            // MQTT Publish
-            // 테스트 메시지 
-            var message = new MqttApplicationMessageBuilder()
-                                .WithTopic(mqttPubTopic)
-                                .WithPayload("전달메시지!!")
-                                .WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.ExactlyOnce)
+            try
+            {
+                // MQTT Publish
+                // 실제 전달 메시지로 변경
+                var prcMsg = new PrcMsg
+                {
+                    ClientId = clientId,
+                    PlantCode = _plantCode,
+                    FacilityId = _prcFacilityId,
+                    Timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                    Flag = "ON"
+                };
+
+                var payload = JsonConvert.SerializeObject(prcMsg, Formatting.Indented);
+
+                var message = new MqttApplicationMessageBuilder()
+                                    .WithTopic(mqttPubTopic)
+                                    .WithPayload(payload)
+                                    .WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.AtLeastOnce)
+                                    .Build();
+
+                if (mqttClient.IsConnected)
+                {
+                    // MQTT 브로커로 전송!
+                    await mqttClient.PublishAsync(message);
+                } else
+                {
+                    await this.dialogCoordinator.ShowMessageAsync(this, "MQTT", "접속불량!");
+
+                    var options = new MqttClientOptionsBuilder()
+                                .WithTcpServer(brokerHost, 1883)
+                                .WithClientId(clientId)
+                                .WithCleanSession(true)
                                 .Build();
 
-            // MQTT 브로커로 전송!
-            await mqttClient.PublishAsync(message);
+                    await mqttClient.ConnectAsync(options); // 재접속
+                }
 
-            ProductBrush = Brushes.Gray;
-            StartHmiRequested?.Invoke();  // 컨베이어벨트 애니메이션 요청(View에서 처리)
+                ProductBrush = Brushes.Gray;
+                StartHmiRequested?.Invoke();  // 컨베이어벨트 애니메이션 요청(View에서 처리)
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex);
+            }            
         }
-
     }
 }

@@ -101,7 +101,7 @@
         <!-- UI 구성 중 상태바 -->
         <StatusBar Grid.Row="2">
             <StatusBarItem>
-                <TextBlock Text="{Binding}" />                
+                <TextBlock Text="" />                
             </StatusBarItem>
             <Separator Background="White" />
             <StatusBarItem HorizontalAlignment="Right">

@@ -17,7 +17,7 @@
         - SF는 비전, 시각화(실시간). IoT 센서장비, 클라우드, AI + 시스템
 
 ##### 작업 개요
-<img src="../image/mp0001.png" width="600">
+<img src="./image/mp0001.png" width="600">
 
 전체 구조도
 
@@ -26,7 +26,7 @@
 - MQTT Subscriber : MQTT 데이터 수신 및 DB저장
 - 공정관리 시스템 : WPF 공정관리 모니티링 및 계획, 리포트
 
-<img src="../image/mp0002.png" width="600">
+<img src="./image/mp0002.png" width="600">
 
 ERD
 
@@ -68,7 +68,7 @@ ERD
         - schedules - 공정계획 테이블
         - processes - 처리할 실시간 공정과정 저장 테이블
 
-<img src="../image/mp0003.png" width="600">
+<img src="./image/mp0003.png" width="600">
 
 ##### IoT 디바이스 시뮬레이터
 - 라즈베리파이, 아두이노 등 사용 디바이스 구성 및 구현
@@ -87,7 +87,7 @@ ERD
 
 5. 선별결과 MQTT로 전달 기능 추가
 
-    <img src="../image/mp0005.png" width="600">
+    <img src="./image/mp0005.png" width="600">
 
 ##### MQTT Subscriber
 - WPF 과목에서 사용했던 MQTT Subscriber 그대로 사용
@@ -105,7 +105,7 @@ ERD
 4. config.json 파일, 설정파일 로드 클래스 작업
 5. 구독 결과
 
-    <img src="../image/mp0004.png" width="600">
+    <img src="./image/mp0004.png" width="600">
 
 ##### WPF 공정관리 앱 개발
 - 기본적인 DB관리 앱 + 실시간 공정 모니터링 + 리포트 시각화
@@ -131,7 +131,7 @@ ERD
 
 12. ScheduleViewModel EntityFramework DB연동 처리
 
-    <img src="../image/mp0006.png" width="600">
+    <img src="./image/mp0006.png" width="600">
 
 13. MonitoringView, MonitoringViewModel 생성
 14. WpfIotSimulatorApp 화면 이전
@@ -142,21 +142,21 @@ ERD
     - Start버튼 눌러서 IoT Simulator 동작시키고 동기화
     - 체크이후 성공/실패 결과 DB에 저장, 실시간 시각화
 
+https://github.com/user-attachments/assets/39c28599-421b-4a96-96a8-6237f451e479
 
-17. ReportView, ReportViewModel 작업
+##### 추후 작업(MiniProject 3)
+1. ReportView, ReportViewModel LiveChart 작업
+2. MainView 상태표시줄 완성
+3. 예외처리 마무리
 
-
-
-#### 파이썬 AI + ASP.NET 연동(나중에)
+#### 파이썬 AI + ASP.NET 연동(MiniProject 3)
 - 참조소스
 - iot-webapp-2025/ref/ReferencedSolution/ConvertWebApp 
 - hungout-with-springboot/003_aicombo/
 
-
 ### 파이널프로젝트 관련
 
 #### 주제 선정
-
 
 #### 프로젝트 주제 발표
 
