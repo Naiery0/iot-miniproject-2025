@@ -144,12 +144,3 @@ ERD
 
 https://github.com/user-attachments/assets/39c28599-421b-4a96-96a8-6237f451e479
 
-##### 추후 작업(MiniProject 3)
-1. ReportView, ReportViewModel LiveChart 작업
-2. MainView 상태표시줄 완성
-3. 예외처리 마무리
-
-#### 파이썬 AI + ASP.NET 연동(MiniProject 3)
-- 참조소스
-- iot-webapp-2025/ref/ReferencedSolution/ConvertWebApp 
-- hungout-with-springboot/003_aicombo/
